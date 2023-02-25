@@ -76,7 +76,35 @@ public class Chat {
 		 }
 		 System.out.println();
 	 }
-	
+
+
+ 
+     private void terminate(String[] commandArg){
+        if(commandArg != null){
+            System.out.println("Attempting to terminate Connection ID: " + commandArg[1]);
+                try {
+                    int id = Integer.parseInt(commandArg[1]);
+                    if(destinationsHosts.containsKey(id) == false) {
+                        System.out.println("Invalid connection ID, unable to terminate, try list");
+                        return;
+                    }	//continue if theres a valid id
+
+                Destination destinationHost = destinationsHosts.get(id);
+                    boolean closed = !destinationHost.closeConnection();
+                    if(closed){
+                        System.out.println("ConnectionID: "+ id + " was terminated.");
+                        destinationsHosts.remove(id);
+                    }
+
+                }catch(NumberFormatException e){
+            System.out.println("Invalid connection ID, unable to terminate. Try again!");
+                                }
+            }else {
+                    System.out.println("Invalid command format , Correct format : terminate <connectionID>");
+                }
+
+     } // end of terminate()
+
 
 }
 
@@ -87,3 +115,68 @@ public class Chat {
  class Client {
 	 
  }
+// Destination class is for managing the socket connection and will wrap the socket and the output stream for the client to send a message
+
+ class Destination{
+
+    private InetAddress remoteHost;
+    private int remotePort;
+    private Socket connection;
+    private PrintWriter out;
+    private boolean isConnected;
+
+    public Destination(InetAddress remoteHost, int remotePort) {
+
+        this.remoteHost = remoteHost;
+        this.remotePort = remotePort;
+    }
+	// checks if client is connnected in order to receive messages
+    public boolean initConnections(){
+        try {
+            this.connection = new Socket(remoteHost, remotePort);
+            this.out = new PrintWriter(connection.getOutputStream(), true);
+            isConnected = true;
+        } catch (IOException e) {
+			System.out.println("Error 404");
+        }
+        return isConnected;
+    }
+    public InetAddress getRemoteHost() {
+        return remoteHost;
+    }
+    public void setRemoteHost(InetAddress remoteHost) {
+        this.remoteHost = remoteHost;
+    }
+	// return port number of specififc destination
+    public int getRemotePort() {
+        return remotePort;
+    }
+    public void setRemotePort(int remotePort) {
+        this.remotePort = remotePort;
+    }
+	// outputs sent messages
+    public void sendMessage(String message){
+        if(isConnected){
+            out.println(message);	// prints the message to the receiver
+        }else{
+			System.out.println("User isn't connected, message can't be sent.");
+		}
+    }
+    public boolean closeConnection(){
+		// closes the connection
+        if(out != null)
+            out.close();
+        if(connection != null){
+            try {
+                connection.close();
+            } catch (IOException e) {
+            }
+        }
+        isConnected = false;
+				return isConnected;
+    }
+    @Override
+    public String toString() {
+        return  remoteHost + "\t" + remotePort;
+    }
+}	//end of destination class
