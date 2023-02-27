@@ -29,7 +29,7 @@ public class Chat {
 			try {
 				int listenPort = Integer.parseInt(args[0]);
 				Chat chatApp = new Chat(listenPort);
-				
+				chatApp.startChat();    // was missing the start chat line
 			} catch (NumberFormatException nfe) {
 				System.out.println("Enter valid port");
 			}
@@ -58,6 +58,7 @@ public class Chat {
 	 }
 	 
 	 //return the port number entered
+     // in server class
 	 private int getMyPort() {
 		 return myPort;
 	 }
@@ -77,8 +78,8 @@ public class Chat {
 		 System.out.println();
 	 }
 
+     // connect and sendMessage class location will be here, to be done later. server class and final touches left after
 
- 
      private void terminate(String[] commandArg){
         if(commandArg != null){
             System.out.println("Attempting to terminate Connection ID: " + commandArg[1]);
@@ -105,16 +106,143 @@ public class Chat {
 
      } // end of terminate()
 
+    // how to start a chat
+     private void startChat(){
 
-}
+
+        Scanner scanner = new Scanner(System.in);
+        try{
+
+        	 myIP = InetAddress.getLocalHost();
+             messageReciever = new Server();
+             new Thread(messageReciever).start();
+
+            // print out each possible command
+            // get correct output to print out in terminal
+            while(true){
+                System.out.print("Enter the command: ");
+                String command = scanner.nextLine();
+                if(command != null && command.trim().length() > 0){
+                    command = command.trim();
+										//common help args..
+                    if(command.equalsIgnoreCase("help") || command.equalsIgnoreCase("/h") || command.equalsIgnoreCase("-h")){
+                    	help();
+                    }else if(command.equalsIgnoreCase("myip")){
+                        System.out.println(getmyIP());
+                    }else if(command.equalsIgnoreCase("myport")){
+                        System.out.println(getmyPort());
+                    }else if(command.startsWith("connect")){
+                        String[] commandArg = command.split("\\s+");
+                        connect(commandArg);
+                    }
+                    else if(command.equalsIgnoreCase("list")){
+                    	 list();
+                    }
+                    else if(command.startsWith("terminate")){
+                    	String[] args = command.split("\\s+");
+                        terminate(args);
+                    }
+                    else if(command.startsWith("send")){
+                    	String[] commandArg = command.split("\\s+");
+                        sendMessage(commandArg);
+                    }
+                    else if(command.startsWith("exit")){
+
+											  System.out.println("Closing all connections...");
+                        System.out.println("Chat Exited!");
+                        closeAll();
+                        System.exit(0);
+                    }else{
+                        System.out.println("Invalid command, try again.");
+                        System.out.println();
+                    }
+                }else{
+                    System.out.println("Invalid command, try again.");
+                    System.out.println();
+                }
+
+            }
+        }catch (UnknownHostException e) {
+            e.printStackTrace();
+        }finally{
+            if(scanner != null)
+                scanner.close();
+            closeAll();
+        }
+    } // end of startChat
+    // closes all chats currently open
+    private void closeAll(){
+        for(Integer id : destinationsHosts.keySet()){
+            Destination destinationHost = destinationsHosts.get(id);
+            destinationHost.closeConnection();
+        }
+        destinationsHosts.clear();
+        messageReciever.stopChat();
+    } // end of closeAll
+
 
  class Server {
 	
 }
 
- class Client {
-	 
- }
+
+    private class Clients implements Runnable{
+
+        private BufferedReader in = null;
+        private Socket clientSocket = null;
+        private boolean isStopped = false;
+        private Clients(BufferedReader in,Socket ipAddress) {
+            this.in = in;
+            this.clientSocket = ipAddress;
+        }
+
+        @Override
+        public void run() {
+
+            while(!clientSocket.isClosed() && !this.isStopped)
+            {
+                String st;
+                try {
+                    st = in.readLine();
+										if(st == null){
+											 stop();	//the connection was closed.
+											 System.out.println("Connection was terminated by: "
+											+clientSocket.getInetAddress().getHostAddress()
+											+":"+clientSocket.getPort()+". ");
+
+											 return;
+										 }
+
+                    System.out.println("Message from "
+										+clientSocket.getInetAddress().getHostAddress()
+										+":"+clientSocket.getPort()+" : "+st);
+
+                } catch (IOException e) {
+                	e.printStackTrace();
+                }
+            }
+        }
+
+        public void stop(){
+
+            if(in != null)
+                try {
+                    in.close();
+                } catch (IOException e) {
+                }
+
+            if(clientSocket != null)
+                try {
+                    clientSocket.close();
+                } catch (IOException e) {
+                }
+            isStopped = true;
+            Thread.currentThread().interrupt();
+        }
+
+    } //end of client class
+} // end pf Chat class
+
 // Destination class is for managing the socket connection and will wrap the socket and the output stream for the client to send a message
 
  class Destination{
