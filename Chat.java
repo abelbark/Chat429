@@ -1,8 +1,16 @@
+
+
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.TreeMap;
 
 import javax.print.attribute.standard.Destination;
@@ -25,11 +33,11 @@ public class Chat {
 	//if the user enters a valid port # then the chat loop runs
 	public static void main(String[] args) {
 
-		if(args[0].trim().length()>1) {
+		if(args!= null && args.length > 0) {
 			try {
 				int listenPort = Integer.parseInt(args[0]);
 				Chat chatApp = new Chat(listenPort);
-				chatApp.startChat();    // was missing the start chat line
+				chatApp.startChat();
 			} catch (NumberFormatException nfe) {
 				System.out.println("Enter valid port");
 			}
@@ -58,8 +66,8 @@ public class Chat {
 	 }
 	 
 	 //return the port number entered
-     // in server class
-	 private int getMyPort() {
+	 //in server class
+	 private int getmyPort() {
 		 return myPort;
 	 }
 	 
@@ -77,8 +85,8 @@ public class Chat {
 		 }
 		 System.out.println();
 	 }
-
-     // connect and sendMessage class location will be here, to be done later. server class and final touches left after
+	 
+	 // connect and sendMessage class location will be here, to be done later. server class and final touches left after
 
      private void terminate(String[] commandArg){
         if(commandArg != null){
@@ -105,8 +113,8 @@ public class Chat {
                 }
 
      } // end of terminate()
-
-    // how to start a chat
+     
+     // how to start a chat
      private void startChat(){
 
 
@@ -179,73 +187,115 @@ public class Chat {
         destinationsHosts.clear();
         messageReciever.stopChat();
     } // end of closeAll
+	 
+	 private class Server implements Runnable {
+		 
+			//reads input stream of characters
+			BufferedReader in = null;
+			Socket socket = null;
+			boolean isStopped;
+			//creates an arraylist of the available clients**
+			List<Clients> clientList = new ArrayList<Clients>();
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				ServerSocket s;
+				try {
+					s = new ServerSocket(getmyPort());
+					System.out.println("Waiting for the client");
+					while(!isStopped) {
+						try {
+							//listens for a connection to be made to this socket
+							//and accepts it
+							socket = s.accept();
+							in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+							System.out.println(socket.getInetAddress().getHostAddress() + ":" + 
+							socket.getPort() + " : client connected successfully");
+							
+							//
+							Clients clients = new Clients(in, socket);
+							//
+							new Thread(clients).start();
+							clientList.add(clients);
+						} catch (IOException e) {
+							//Something
+							e.printStackTrace();
+						}
+					}
+				} catch(IOException e1) {
+					
+				}
+			}
+			
+			public void stopChat() {
+				isStopped = true;
+				for(Clients clients : clientList) {
+					clients.stop();
+				}
+				//Something
+				Thread.currentThread().interrupt();
+			}
 
+		} //end of server class
+	 
+	 private class Clients implements Runnable{
 
- class Server {
-	
-}
+	        private BufferedReader in = null;
+	        private Socket clientSocket = null;
+	        private boolean isStopped = false;
+	        private Clients(BufferedReader in,Socket ipAddress) {
+	            this.in = in;
+	            this.clientSocket = ipAddress;
+	        }
 
+	        @Override
+	        public void run() {
 
-    private class Clients implements Runnable{
+	            while(!clientSocket.isClosed() && !this.isStopped)
+	            {
+	                String st;
+	                try {
+	                    st = in.readLine();
+											if(st == null){
+												 stop();	//the connection was closed.
+												 System.out.println("Connection was terminated by: "
+												+clientSocket.getInetAddress().getHostAddress()
+												+":"+clientSocket.getPort()+". ");
 
-        private BufferedReader in = null;
-        private Socket clientSocket = null;
-        private boolean isStopped = false;
-        private Clients(BufferedReader in,Socket ipAddress) {
-            this.in = in;
-            this.clientSocket = ipAddress;
-        }
+												 return;
+											 }
 
-        @Override
-        public void run() {
-
-            while(!clientSocket.isClosed() && !this.isStopped)
-            {
-                String st;
-                try {
-                    st = in.readLine();
-										if(st == null){
-											 stop();	//the connection was closed.
-											 System.out.println("Connection was terminated by: "
+	                    System.out.println("Message from "
 											+clientSocket.getInetAddress().getHostAddress()
-											+":"+clientSocket.getPort()+". ");
+											+":"+clientSocket.getPort()+" : "+st);
 
-											 return;
-										 }
+	                } catch (IOException e) {
+	                	e.printStackTrace();
+	                }
+	            }
+	        }
 
-                    System.out.println("Message from "
-										+clientSocket.getInetAddress().getHostAddress()
-										+":"+clientSocket.getPort()+" : "+st);
+	        public void stop(){
 
-                } catch (IOException e) {
-                	e.printStackTrace();
-                }
-            }
-        }
+	            if(in != null)
+	                try {
+	                    in.close();
+	                } catch (IOException e) {
+	                }
 
-        public void stop(){
+	            if(clientSocket != null)
+	                try {
+	                    clientSocket.close();
+	                } catch (IOException e) {
+	                }
+	            isStopped = true;
+	            Thread.currentThread().interrupt();
+	        }
 
-            if(in != null)
-                try {
-                    in.close();
-                } catch (IOException e) {
-                }
-
-            if(clientSocket != null)
-                try {
-                    clientSocket.close();
-                } catch (IOException e) {
-                }
-            isStopped = true;
-            Thread.currentThread().interrupt();
-        }
-
-    } //end of client class
+	    } //end of client class
 } // end pf Chat class
 
-// Destination class is for managing the socket connection and will wrap the socket and the output stream for the client to send a message
-
- class Destination{
+class Destination{
 
     private InetAddress remoteHost;
     private int remotePort;
