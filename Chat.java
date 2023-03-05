@@ -1,5 +1,4 @@
 
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -7,18 +6,19 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
 
-import javax.print.attribute.standard.Destination;
+//import javax.print.attribute.standard.Destination;
 
 
 public class Chat {
 	
-	private InetAddress ipAddress;   
+	private InetAddress myIP;   
 	private int myPort; 
 	private Map<Integer, Destination> destinationsHosts = new TreeMap<>();
     private int clientCounter = 1;
@@ -62,7 +62,7 @@ public class Chat {
 	
 	//will retrieve the ip address of the computer
 	 private String getmyIP(){
-	        return ipAddress.getHostAddress();
+	        return myIP.getHostAddress();
 	 }
 	 
 	 //return the port number entered
@@ -187,6 +187,60 @@ public class Chat {
         destinationsHosts.clear();
         messageReciever.stopChat();
     } // end of closeAll
+    
+    private void sendMessage(String[] args) {
+    	if(args.length > 2) {
+    		try {
+    			int id = Integer.parseInt(args[1]);
+    			Destination destinationHost = destinationsHosts.get(id);
+    			System.out.println("id====" +destinationsHosts.get(id));
+    			if(destinationHost != null) {
+    				StringBuilder message = new StringBuilder();
+    				for(int i = 2; i < args.length; i++) {
+    					message.append(args[i]);
+    					message.append(" ");
+    				}
+    				destinationHost.sendMessage(message.toString());
+    				System.out.println("Message sent successfully");
+    			} else {
+    				System.out.println("No connection available");
+    			}
+    		} catch(NumberFormatException ne) {
+    			System.out.println("Invalid Connection id");
+    		}
+    	} else {
+    		System.out.println("Invalid command");
+    	}
+    }
+    
+    
+    private void connect(String[] args) {
+    	//
+    	if(args != null && args.length == 3) {
+    		try {
+    			//determines the ip address of the host given the hosts name
+    			InetAddress remoteAddress = InetAddress.getByName(args[1]);
+    			int remotePort = Integer.parseInt(args[2]);
+    			System.out.println("Connecting to: "+ remoteAddress + " on port" + remotePort );
+    			Destination destinationHost = new Destination(remoteAddress, remotePort);
+    			
+    			if(destinationHost.initConnections()) {
+    				//associates a specified value with a specified key
+    				destinationsHosts.put(null, destinationHost);
+    				System.out.println("Connected successfully, client id: " + clientCounter++);
+    			} else {
+    				System.out.println("Unable to establish a connection, try again");
+    			}
+    		} catch(NumberFormatException ne) {
+    			System.out.println("Invalid Remote Host Port, unable to connect");
+    		} catch(UnknownHostException e) {
+    			System.out.println("Invalid remote Host Address, unable to connect");
+    		}
+    		
+    	} else {
+    		System.out.println("Invalid command format, follow: connect<destination> <port #>");
+    	}
+    }
 	 
 	 private class Server implements Runnable {
 		 
