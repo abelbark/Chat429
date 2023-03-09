@@ -1,4 +1,3 @@
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -13,14 +12,14 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
 
-//import javax.print.attribute.standard.Destination;
+//import javax.print.attribute.standard.Target_Room;
 
 
 public class Chat {
 	
 	private InetAddress myIP;   
 	private int myPort; 
-	private Map<Integer, Destination> destinationsHosts = new TreeMap<>();
+	private Map<Integer, Target_Room> roomHosts = new TreeMap<>();
     private int clientCounter = 1;
     private Server messageReciever ;
 
@@ -75,12 +74,12 @@ public class Chat {
 	 //this process is part of
 	 private void list() {
 		 System.out.println("ID:\tIP Address\tPort");
-		 if(destinationsHosts.isEmpty()) {
-			 System.out.println("No Destinations available");
+		 if(roomHosts.isEmpty()) {
+			 System.out.println("No destination available");
 		 } else {
-			 for(Integer id : destinationsHosts.keySet()) {
-				 Destination destinationHost = destinationsHosts.get(id);
-				 System.out.println(id + "\t" + destinationHost.toString());
+			 for(Integer id : roomHosts.keySet()) {
+				 Target_Room roomHost = roomHosts.get(id);
+				 System.out.println(id + "\t" + roomHost.toString());
 			 }
 		 }
 		 System.out.println();
@@ -93,16 +92,16 @@ public class Chat {
             System.out.println("Attempting to terminate Connection ID: " + commandArg[1]);
                 try {
                     int id = Integer.parseInt(commandArg[1]);
-                    if(destinationsHosts.containsKey(id) == false) {
+                    if(roomHosts.containsKey(id) == false) {
                         System.out.println("Invalid connection ID, unable to terminate, try list");
                         return;
                     }	//continue if theres a valid id
 
-                Destination destinationHost = destinationsHosts.get(id);
-                    boolean closed = !destinationHost.closeConnection();
+                Target_Room roomHost = roomHosts.get(id);
+                    boolean closed = !roomHost.closeConnection();
                     if(closed){
                         System.out.println("ConnectionID: "+ id + " was terminated.");
-                        destinationsHosts.remove(id);
+                        roomHosts.remove(id);
                     }
 
                 }catch(NumberFormatException e){
@@ -180,27 +179,27 @@ public class Chat {
     } // end of startChat
     // closes all chats currently open
     private void closeAll(){
-        for(Integer id : destinationsHosts.keySet()){
-            Destination destinationHost = destinationsHosts.get(id);
-            destinationHost.closeConnection();
+        for(Integer id : roomHosts.keySet()){
+            Target_Room roomHost = roomHosts.get(id);
+            roomHost.closeConnection();
         }
-        destinationsHosts.clear();
+        roomHosts.clear();
         messageReciever.stopChat();
     } // end of closeAll
     
-    private void sendMessage(String[] args) {
-    	if(args.length > 2) {
+    private void sendMessage(String[] commandArg) {
+    	if(commandArg.length > 2) {
     		try {
-    			int id = Integer.parseInt(args[1]);
-    			Destination destinationHost = destinationsHosts.get(id);
-    			System.out.println("id====" +destinationsHosts.get(id));
-    			if(destinationHost != null) {
+    			int id = Integer.parseInt(commandArg[1]);
+    			Target_Room roomHost = roomHosts.get(id);
+    			System.out.println("id====" +roomHosts.get(id));
+    			if(roomHost != null) {
     				StringBuilder message = new StringBuilder();
-    				for(int i = 2; i < args.length; i++) {
-    					message.append(args[i]);
+    				for(int i = 2; i < commandArg.length; i++) {
+    					message.append(commandArg[i]);
     					message.append(" ");
     				}
-    				destinationHost.sendMessage(message.toString());
+    				roomHost.sendMessage(message.toString());
     				System.out.println("Message sent successfully");
     			} else {
     				System.out.println("No connection available");
@@ -214,19 +213,19 @@ public class Chat {
     }
     
     
-    private void connect(String[] args) {
+    private void connect(String[] commandArg) {
     	//
-    	if(args != null && args.length == 3) {
+    	if(commandArg != null && commandArg.length == 3) {
     		try {
     			//determines the ip address of the host given the hosts name
-    			InetAddress remoteAddress = InetAddress.getByName(args[1]);
-    			int remotePort = Integer.parseInt(args[2]);
-    			System.out.println("Connecting to: "+ remoteAddress + " on port" + remotePort );
-    			Destination destinationHost = new Destination(remoteAddress, remotePort);
+    			InetAddress remoteAddress = InetAddress.getByName(commandArg[1]);
+    			int remotePort = Integer.parseInt(commandArg[2]);
+    			System.out.println("Connecting to: "+ remoteAddress + " on port " + remotePort );
+    			Target_Room roomHost = new Target_Room(remoteAddress, remotePort);
     			
-    			if(destinationHost.initConnections()) {
+    			if(roomHost.initConnections()) {
     				//associates a specified value with a specified key
-    				destinationsHosts.put(null, destinationHost);
+    				roomHosts.put(clientCounter, roomHost);
     				System.out.println("Connected successfully, client id: " + clientCounter++);
     			} else {
     				System.out.println("Unable to establish a connection, try again");
@@ -238,7 +237,7 @@ public class Chat {
     		}
     		
     	} else {
-    		System.out.println("Invalid command format, follow: connect<destination> <port #>");
+    		System.out.println("Invalid command format, follow: connect <destination> <port #>");
     	}
     }
 	 
@@ -349,7 +348,7 @@ public class Chat {
 	    } //end of client class
 } // end pf Chat class
 
-class Destination{
+class Target_Room{
 
     private InetAddress remoteHost;
     private int remotePort;
@@ -357,7 +356,7 @@ class Destination{
     private PrintWriter out;
     private boolean isConnected;
 
-    public Destination(InetAddress remoteHost, int remotePort) {
+    public Target_Room(InetAddress remoteHost, int remotePort) {
 
         this.remoteHost = remoteHost;
         this.remotePort = remotePort;
