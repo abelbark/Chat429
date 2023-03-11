@@ -271,7 +271,7 @@ public class Chat {
 							new Thread(clients).start();
 							clientList.add(clients);
 						} catch (IOException e) {
-							//Something
+							
 							e.printStackTrace();
 						}
 					}
@@ -285,7 +285,7 @@ public class Chat {
 				for(Clients clients : clientList) {
 					clients.stop();
 				}
-				//Something
+				
 				Thread.currentThread().interrupt();
 			}
 
