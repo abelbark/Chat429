@@ -9,5 +9,5 @@ Open up some terminals and get started. Type in help for a command manual.
 Abel: server class, terminate(), main(), list(), getmyIP(), getMyPort(); getHelp()
   -fixed some bugs
 
-Erik: Client class, Destination class, sendMessage(), closeChat(), closeAll(), connect()
+Erik: Client class, Destination class, sendMessage(), closeChat(), closeAll(), connect(), startChat()
   -fixed some bugs
